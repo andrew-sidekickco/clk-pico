@@ -8,11 +8,22 @@
 #include "Machines/Utility/MachineForTarget.hpp"
 #include "Outputs/ScanTargets/BufferingScanTarget.hpp"
 
+#define USING_EXPORT 1
+#define USING_TERMINAL_KEYBOARD 1
+
 #include <iostream>
 #include <vector>
 #include <cstdint>
 #include <fstream>
 #include <filesystem>
+
+#if USING_TERMINAL_KEYBOARD
+# 	include <unistd.h>
+#	include <termios.h>
+#	include <fcntl.h>
+	// Translate the key press.
+	Inputs::Keyboard::Key getKeyFrom(unsigned char c);
+#endif
 
 struct Binary
 {
@@ -127,16 +138,8 @@ std::vector <Outputs::Display::BufferingScanTarget::Scan> submit(const size_t be
 	std::vector <Outputs::Display::BufferingScanTarget::Scan> scans;
 	
 	size_t buffer_destination = 0;
-	const auto submit = [&](const size_t begin, const size_t end) {
-//		test_gl([&]{
-//			glBufferSubData(
-//				GL_ARRAY_BUFFER,
-//				buffer_destination,
-//				(end - begin) * sizeof(source[0]),
-//				&source[begin]
-//			);
-//		});
-		
+	const auto submit = [&](const size_t begin, const size_t end)
+	{
 		for ( auto i = begin; i < end; i ++ )
 		{
 			scans.push_back( source[i] );
@@ -146,11 +149,9 @@ std::vector <Outputs::Display::BufferingScanTarget::Scan> submit(const size_t be
 	};
 	if(begin < end) {
 		submit(begin, end);
-//		return end - begin;
 	} else {
 		submit(begin, source.size());
 		submit(0, end);
-//		return source.size() - begin + end;
 	}
 	
 	return scans;
@@ -175,21 +176,25 @@ std::vector<uint8_t> load(const std::filesystem::path& path)
 
 int main(int argc, const char * argv[]) {
 
+	// in xcode scheme options console == terminal.
+	
+#if USING_TERMINAL_KEYBOARD
+	
+	std::cout << "Running in Terminal (to capture keyboard input): " << isatty(STDIN_FILENO) << "\n";
+	
+	termios oldt{};
+	tcgetattr(STDIN_FILENO, &oldt);
+
+	termios raw = oldt;
+	raw.c_lflag &= ~(ICANON | ECHO);
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &raw);
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	
+#endif // USING_TERMINAL_KEYBOARD
+	
 	Analyser::Static::Acorn::ElectronTarget target;
 	Outputs::Display::BufferingScanTarget scanTarget;
-	
-	constexpr int ScansCount = 500;
-	constexpr int LinesCount = 4 * ScansCount;
-	constexpr int AreaSize = Outputs::Display::BufferingScanTarget::WriteAreaWidth *
-							 Outputs::Display::BufferingScanTarget::WriteAreaHeight * 4;
-	
-	auto scans = std::make_unique <Outputs::Display::BufferingScanTarget::Scan[]> ( ScansCount );
-//	auto lines = std::make_unique <Outputs::Display::BufferingScanTarget::Line[]> ( LinesCount );
-	auto area = std::make_unique <std::uint8_t[]> ( AreaSize );
-	
-	scanTarget.set_scan_buffer( scans.get(), ScansCount );
-//	scanTarget.set_line_buffer( lines.get(), LinesCount );
-	scanTarget.set_write_area( area.get() );
 	
 	ROMMachine::ROMFetcher romFetcher = [] ( const ROM::Request &roms) -> ROM::Map
 	{
@@ -214,27 +219,27 @@ int main(int argc, const char * argv[]) {
 	Machine::Error error;
 	
 	auto targets = Analyser::Static::GetTargets( "/Users/adocking/Documents/dev/rgco/projects/games/ChuckieEgg_E.uef" );
-//	auto machine = Machine::MachineForTarget( &target, romFetcher, error );
 	auto machine = Machine::MachineForTargets( targets, romFetcher, error );
+//	auto machine = Machine::MachineForTarget( &target, romFetcher, error );
 	
 	Configurable::Device *configurable_device = machine->configurable_device();
 	auto options = configurable_device->get_options();
 	configurable_device->set_options( options );
 	
-//	options->Reflection::set(*options, Configurable::Options::DisplayOptionName, int(Configurable::Display::RGB));
 	machine->scan_producer()->set_scan_target( &scanTarget );
+	const auto keyboard_machine = machine->keyboard_machine();
 	
 	bool stop = false;
 	auto i = 0;
 	
 	static constexpr int LineBufferHeight = 2048;
-	static constexpr int WriteAreaWidth = 2048;
-	static constexpr int WriteAreaHeight = 2048;
+	static constexpr int WriteAreaWidth = Outputs::Display::BufferingScanTarget::WriteAreaWidth;
+	static constexpr int WriteAreaHeight = Outputs::Display::BufferingScanTarget::WriteAreaHeight;
 	
 	std::vector<uint8_t> write_area_texture_;
 	std::vector<uint8_t> copiedScans;
-	std::array<Outputs::Display::BufferingScanTarget::Scan, LineBufferHeight*5> scan_buffer_{};
-	std::array<Outputs::Display::BufferingScanTarget::Line, LineBufferHeight> line_buffer_{};
+	std::array<Outputs::Display::BufferingScanTarget::Scan, LineBufferHeight*5> scan_buffer_{}; // <- *5 is from ScanTarget.h \o/?
+	std::array<Outputs::Display::BufferingScanTarget::Line, LineBufferHeight>   line_buffer_{};
 	
 	scanTarget.set_scan_buffer(scan_buffer_.data(), scan_buffer_.size());
 	scanTarget.set_line_buffer(line_buffer_.data(), line_buffer_.size());
@@ -272,9 +277,6 @@ int main(int argc, const char * argv[]) {
 				frameField = field_index;
 			}
 		};
-
-#define USING_TEST 	 0
-#define USING_EXPORT 1
 	
 	while ( !stop )
 	{
@@ -308,6 +310,30 @@ int main(int argc, const char * argv[]) {
 		scanTarget.output_scans( area, output_items, end_field );
 		scanTarget.complete_output_area( area );
 		
+#if USING_TERMINAL_KEYBOARD
+		
+		char c;
+		bool pressed = ( read( STDIN_FILENO, &c, 1 ) > 0 );
+		
+		if ( ( i & 0x7 ) == 0 )
+		{
+			// This will clear the automatic "CHAIN " command on starting up with a tape image.
+//			keyboard_machine->get_keyboard().reset_all_keys();
+		}
+		
+		if ( pressed )
+		{
+			std::cout << "Key (c to clear keyboard state: " << c << std::endl;
+			keyboard_machine->get_keyboard().set_key_pressed( getKeyFrom( c ), ' ', true, false );
+			
+			if (c == 'c')
+			{
+				keyboard_machine->get_keyboard().reset_all_keys();
+			}
+		}
+		
+#endif
+		
 #if USING_EXPORT
 		
 		auto w = frameWidth;
@@ -339,3 +365,93 @@ int main(int argc, const char * argv[]) {
 	
     return 0;
 }
+
+#if USING_TERMINAL_KEYBOARD
+
+Inputs::Keyboard::Key getKeyFrom(unsigned char c)
+{
+	using Keyboard = Inputs::Keyboard;
+
+	switch (c)
+	{
+		case 27: { // Escape or escape sequence
+			unsigned char seq[2];
+			if (read(STDIN_FILENO, &seq[0], 1) != 1) return Keyboard::Key::Escape;
+			if (read(STDIN_FILENO, &seq[1], 1) != 1) return Keyboard::Key::Escape;
+
+			if (seq[0] == '[')
+			{
+				switch (seq[1])
+				{
+					case 'A': return Keyboard::Key::Up;
+					case 'B': return Keyboard::Key::Down;
+					case 'C': return Keyboard::Key::Right;
+					case 'D': return Keyboard::Key::Left;
+				}
+			}
+			return Keyboard::Key::Escape;
+		}
+
+		case '\n': return Keyboard::Key::Enter;
+		case '\t': return Keyboard::Key::Tab;
+		case 127:  return Keyboard::Key::Backspace;
+		case ' ':  return Keyboard::Key::Space;
+
+		case '`': return Keyboard::Key::BackTick;
+		case '-': return Keyboard::Key::Hyphen;
+		case '=': return Keyboard::Key::Equals;
+
+		case '[': return Keyboard::Key::OpenSquareBracket;
+		case ']': return Keyboard::Key::CloseSquareBracket;
+		case '\\': return Keyboard::Key::Backslash;
+
+		case ';': return Keyboard::Key::Semicolon;
+		case '\'': return Keyboard::Key::Quote;
+
+		case ',': return Keyboard::Key::Comma;
+		case '.': return Keyboard::Key::FullStop;
+		case '/': return Keyboard::Key::ForwardSlash;
+
+		case '0': return Keyboard::Key::k0;
+		case '1': return Keyboard::Key::k1;
+		case '2': return Keyboard::Key::k2;
+		case '3': return Keyboard::Key::k3;
+		case '4': return Keyboard::Key::k4;
+		case '5': return Keyboard::Key::k5;
+		case '6': return Keyboard::Key::k6;
+		case '7': return Keyboard::Key::k7;
+		case '8': return Keyboard::Key::k8;
+		case '9': return Keyboard::Key::k9;
+
+		case 'a': case 'A': return Keyboard::Key::A;
+		case 'b': case 'B': return Keyboard::Key::B;
+		case 'c': case 'C': return Keyboard::Key::C;
+		case 'd': case 'D': return Keyboard::Key::D;
+		case 'e': case 'E': return Keyboard::Key::E;
+		case 'f': case 'F': return Keyboard::Key::F;
+		case 'g': case 'G': return Keyboard::Key::G;
+		case 'h': case 'H': return Keyboard::Key::H;
+		case 'i': case 'I': return Keyboard::Key::I;
+		case 'j': case 'J': return Keyboard::Key::J;
+		case 'k': case 'K': return Keyboard::Key::K;
+		case 'l': case 'L': return Keyboard::Key::L;
+		case 'm': case 'M': return Keyboard::Key::M;
+		case 'n': case 'N': return Keyboard::Key::N;
+		case 'o': case 'O': return Keyboard::Key::O;
+		case 'p': case 'P': return Keyboard::Key::P;
+		case 'q': case 'Q': return Keyboard::Key::Q;
+		case 'r': case 'R': return Keyboard::Key::R;
+		case 's': case 'S': return Keyboard::Key::S;
+		case 't': case 'T': return Keyboard::Key::T;
+		case 'u': case 'U': return Keyboard::Key::U;
+		case 'v': case 'V': return Keyboard::Key::V;
+		case 'w': case 'W': return Keyboard::Key::W;
+		case 'x': case 'X': return Keyboard::Key::X;
+		case 'y': case 'Y': return Keyboard::Key::Y;
+		case 'z': case 'Z': return Keyboard::Key::Z;
+	}
+
+	return Keyboard::Key::Escape; // fallback
+}
+
+#endif
