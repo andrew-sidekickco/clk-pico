@@ -41,3 +41,6 @@ OSBindings/Mac/Clock SignalTests/MSX ROMs
 # Carthage/Checkouts
 
 Carthage/Build
+*.xcworkspacedata
+*.xcscheme
+*.xcscheme

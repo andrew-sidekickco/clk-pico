@@ -60,7 +60,7 @@ public:
 	IntType get_value() const {
 		const IntType result = value_ ^ output_xor;
 		if constexpr (reflect_output) {
-			return Numeric::bit_reverse(result);
+			return result;// Numeric::bit_reverse((uint64_t)result);
 		} else {
 			return result;
 		}
