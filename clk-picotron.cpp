@@ -7,6 +7,7 @@
 #include "Analyser/Static/Acorn/Target.hpp"
 #include "Machines/Utility/MachineForTarget.hpp"
 #include "Outputs/ScanTargets/BufferingScanTarget.hpp"
+#include "Storage/Tape/Formats/TapeUEF.hpp"
 
 #define USING_EXPORT 1
 #define USING_TERMINAL_KEYBOARD 1
@@ -219,14 +220,19 @@ int main(int argc, const char * argv[]) {
 	Machine::Error error;
 	
 	auto targets = Analyser::Static::GetTargets( "/Users/adocking/Documents/dev/rgco/projects/games/ChuckieEgg_E.uef" );
-	auto machine = Machine::MachineForTargets( targets, romFetcher, error );
-//	auto machine = Machine::MachineForTarget( &target, romFetcher, error );
+//	auto machine = Machine::MachineForTargets( targets, romFetcher, error );
+	auto machine = Machine::MachineForTarget( &target, romFetcher, error );
 	
 	Configurable::Device *configurable_device = machine->configurable_device();
 	auto options = configurable_device->get_options();
 	configurable_device->set_options( options );
 	
+	Analyser::Static::Media media;
+	media.tapes.emplace_back( std::make_shared <Storage::Tape::UEF> ( "/Users/adocking/Documents/dev/rgco/projects/games/ChuckieEgg_E.uef" ) );
+	
+	machine->media_target()->insert_media( media );
 	machine->scan_producer()->set_scan_target( &scanTarget );
+//	machine->keyboard_machine()->type_string( "CHAIN \"\"\n" );
 	const auto keyboard_machine = machine->keyboard_machine();
 	
 	bool stop = false;
@@ -323,10 +329,11 @@ int main(int argc, const char * argv[]) {
 		
 		if ( pressed )
 		{
-			std::cout << "Key (c to clear keyboard state: " << c << std::endl;
-			keyboard_machine->get_keyboard().set_key_pressed( getKeyFrom( c ), ' ', true, false );
+			std::cout << "Key (\\ to clear keyboard state: " << c << std::endl;
+//			keyboard_machine->get_keyboard().set_key_pressed( getKeyFrom( c ), ' ', true, false );
+			keyboard_machine->type_string( std::string( 1, c ) );
 			
-			if (c == 'c')
+			if (c == '\\')
 			{
 				keyboard_machine->get_keyboard().reset_all_keys();
 			}
