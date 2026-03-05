@@ -220,8 +220,8 @@ int main(int argc, const char * argv[]) {
 	Machine::Error error;
 	
 	auto targets = Analyser::Static::GetTargets( "/Users/adocking/Documents/dev/rgco/projects/games/ChuckieEgg_E.uef" );
-//	auto machine = Machine::MachineForTargets( targets, romFetcher, error );
-	auto machine = Machine::MachineForTarget( &target, romFetcher, error );
+	auto machine = Machine::MachineForTargets( targets, romFetcher, error );
+//	auto machine = Machine::MachineForTarget( &target, romFetcher, error );
 	
 	Configurable::Device *configurable_device = machine->configurable_device();
 	auto options = configurable_device->get_options();
@@ -363,7 +363,7 @@ int main(int argc, const char * argv[]) {
 		
 		auto image = Image{ { w, h }, data.get() };
 		auto binary = asTGA( image );
-		saveAs( binary, "/Users/adocking/Desktop/test/frame-" + std::to_string( i & 3 ) + ".tga" );
+		saveAs( binary, "/Users/adocking/Desktop/test/frame-" + std::to_string( i & 15 ) + ".tga" );
 		
 #endif // USING_EXPORT
 		
