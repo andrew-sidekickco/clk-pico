@@ -71,27 +71,7 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTarget(
 	break;
 #define Bind(m)	BindD(m, m)
 		switch(target->machine) {
-			Bind(Amiga)
-			Bind(AmstradCPC)
-			Bind(Archimedes)
-			BindD(Apple::II, AppleII)
-			BindD(Apple::IIgs, AppleIIgs)
-			BindD(Apple::Macintosh, Macintosh)
-			Bind(Atari2600)
-			BindD(Atari::ST, AtariST)
-			Bind(BBCMicro)
-			BindD(Coleco::Vision, ColecoVision)
-			BindD(Commodore::Plus4, Plus4)
-			BindD(Commodore::Vic20, Vic20)
 			Bind(Electron)
-			Bind(Enterprise)
-			Bind(MSX)
-			Bind(Oric)
-			Bind(PCCompatible)
-			BindD(Sega::MasterSystem, MasterSystem)
-			BindD(Sinclair::ZX8081, ZX8081)
-			BindD(Sinclair::ZXSpectrum, ZXSpectrum)
-
 			default:
 				error = Machine::Error::UnknownMachine;
 			return nullptr;
@@ -151,54 +131,14 @@ std::unique_ptr<Machine::DynamicMachine> Machine::MachineForTargets(
 
 std::string Machine::ShortNameForTargetMachine(const Analyser::Machine machine) {
 	switch(machine) {
-		case Analyser::Machine::Amiga:			return "Amiga";
-		case Analyser::Machine::AmstradCPC:		return "AmstradCPC";
-		case Analyser::Machine::AppleII:		return "AppleII";
-		case Analyser::Machine::AppleIIgs:		return "AppleIIgs";
-		case Analyser::Machine::Archimedes:		return "Archimedes";
-		case Analyser::Machine::Atari2600:		return "Atari2600";
-		case Analyser::Machine::AtariST:		return "AtariST";
-		case Analyser::Machine::BBCMicro:		return "BBCMicro";
-		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Electron";
-		case Analyser::Machine::Enterprise:		return "Enterprise";
-		case Analyser::Machine::Macintosh:		return "Macintosh";
-		case Analyser::Machine::MasterSystem:	return "MasterSystem";
-		case Analyser::Machine::MSX:			return "MSX";
-		case Analyser::Machine::Oric:			return "Oric";
-		case Analyser::Machine::Plus4:			return "Plus4";
-		case Analyser::Machine::PCCompatible:	return "PCCompatible";
-		case Analyser::Machine::Vic20:			return "Vic20";
-		case Analyser::Machine::ZX8081:			return "ZX8081";
-		case Analyser::Machine::ZXSpectrum:		return "ZXSpectrum";
-
 		default:	return "";
 	}
 }
 
 std::string Machine::LongNameForTargetMachine(const Analyser::Machine machine) {
 	switch(machine) {
-		case Analyser::Machine::Amiga:			return "Amiga";
-		case Analyser::Machine::AmstradCPC:		return "Amstrad CPC";
-		case Analyser::Machine::AppleII:		return "Apple II";
-		case Analyser::Machine::AppleIIgs:		return "Apple IIgs";
-		case Analyser::Machine::Archimedes:		return "Acorn Archimedes";
-		case Analyser::Machine::Atari2600:		return "Atari 2600";
-		case Analyser::Machine::AtariST:		return "Atari ST";
-		case Analyser::Machine::BBCMicro:		return "BBC Micro";
-		case Analyser::Machine::ColecoVision:	return "ColecoVision";
 		case Analyser::Machine::Electron:		return "Acorn Electron";
-		case Analyser::Machine::Enterprise:		return "Enterprise";
-		case Analyser::Machine::Macintosh:		return "Apple Macintosh";
-		case Analyser::Machine::MasterSystem:	return "Sega Master System";
-		case Analyser::Machine::MSX:			return "MSX";
-		case Analyser::Machine::Oric:			return "Oric";
-		case Analyser::Machine::Plus4:			return "Commodore C16+4";
-		case Analyser::Machine::PCCompatible:	return "PC Compatible";
-		case Analyser::Machine::Vic20:			return "Vic 20";
-		case Analyser::Machine::ZX8081:			return "ZX80/81";
-		case Analyser::Machine::ZXSpectrum:		return "ZX Spectrum";
-
 		default:	return "";
 	}
 }
@@ -218,23 +158,7 @@ std::vector<std::string> Machine::AllMachines(const Type type, const bool long_n
 	}
 
 	if(type == Type::Any || type == Type::DoesntRequireMedia) {
-		add_name(Analyser::Machine::Amiga);
-		add_name(Analyser::Machine::AmstradCPC);
-		add_name(Analyser::Machine::AppleII);
-		add_name(Analyser::Machine::AppleIIgs);
-		add_name(Analyser::Machine::Archimedes);
-		add_name(Analyser::Machine::AtariST);
-		add_name(Analyser::Machine::BBCMicro);
 		add_name(Analyser::Machine::Electron);
-		add_name(Analyser::Machine::Enterprise);
-		add_name(Analyser::Machine::Macintosh);
-		add_name(Analyser::Machine::MSX);
-		add_name(Analyser::Machine::Oric);
-		add_name(Analyser::Machine::Plus4);
-		add_name(Analyser::Machine::PCCompatible);
-		add_name(Analyser::Machine::Vic20);
-		add_name(Analyser::Machine::ZX8081);
-		add_name(Analyser::Machine::ZXSpectrum);
 	}
 
 	return result;
@@ -249,24 +173,7 @@ std::map<std::string, std::unique_ptr<Reflection::Struct>> Machine::AllOptionsBy
 		std::make_unique<class::Options>(Configurable::OptionsType::UserFriendly)	\
 	)
 
-	Emplace(AmstradCPC, AmstradCPC::Machine);
-	Emplace(AppleII, Apple::II::Machine);
-	Emplace(Archimedes, Archimedes::Machine);
-	Emplace(AtariST, Atari::ST::Machine);
-	Emplace(BBCMicro, BBCMicro::Machine);
-	Emplace(ColecoVision, Coleco::Vision::Machine);
 	Emplace(Electron, Electron::Machine);
-	Emplace(Enterprise, Enterprise::Machine);
-	Emplace(Macintosh, Apple::Macintosh::Machine);
-	Emplace(MasterSystem, Sega::MasterSystem::Machine);
-	Emplace(MSX, MSX::Machine);
-	Emplace(Oric, Oric::Machine);
-	Emplace(Plus4, Commodore::Plus4::Machine);
-	Emplace(PCCompatible, PCCompatible::Machine);
-	Emplace(Vic20, Commodore::Vic20::Machine);
-	Emplace(ZX8081, Sinclair::ZX8081::Machine);
-	Emplace(ZXSpectrum, Sinclair::ZXSpectrum::Machine);
-
 #undef Emplace
 
 	return options;

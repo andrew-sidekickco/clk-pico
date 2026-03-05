@@ -377,24 +377,6 @@ TargetList Analyser::Static::GetTargets(const std::string &file_name) {
 	};
 
 	append(TargetPlatform::Acorn, Acorn::GetTargets);
-	append(TargetPlatform::AmstradCPC, AmstradCPC::GetTargets);
-	append(TargetPlatform::AppleII, AppleII::GetTargets);
-	append(TargetPlatform::AppleIIgs, AppleIIgs::GetTargets);
-	append(TargetPlatform::Amiga, Amiga::GetTargets);
-	append(TargetPlatform::Atari2600, Atari2600::GetTargets);
-	append(TargetPlatform::AtariST, AtariST::GetTargets);
-	append(TargetPlatform::Coleco, Coleco::GetTargets);
-	append(TargetPlatform::Commodore8bit, Commodore::GetTargets);
-	append(TargetPlatform::DiskII, DiskII::GetTargets);
-	append(TargetPlatform::Enterprise, Enterprise::GetTargets);
-	append(TargetPlatform::FAT12, FAT12::GetTargets);
-	append(TargetPlatform::Macintosh, Macintosh::GetTargets);
-	append(TargetPlatform::MSX, MSX::GetTargets);
-	append(TargetPlatform::Oric, Oric::GetTargets);
-	append(TargetPlatform::PCCompatible, PCCompatible::GetTargets);
-	append(TargetPlatform::Sega, Sega::GetTargets);
-	append(TargetPlatform::ZX8081, ZX8081::GetTargets);
-	append(TargetPlatform::ZXSpectrum, ZXSpectrum::GetTargets);
 
 	// Sort by initial confidence. Use a stable sort in case any of the machine-specific analysers
 	// picked their insertion order carefully.
